@@ -19,7 +19,6 @@ import java.util.*
         Index(value = ["nat"], unique = false)
     ]
 )
-@TypeConverters(TypeConverterHelper::class)
 data class UserModel(
     @Embedded
     val login: LoginModel,
