@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Listing App</string>
+    <string name="search">Search</string>
+    <string name="weather_detail">Click to get weather details</string>
+    <string name="location_required">Location required</string>
+    <string name="retry">Retry</string>
+    <string name="no_results_found">No result found, try something else</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="user_action_text">Click to open location on map or write an email.</string>
+    <string name="uv">UV</string>
+    <string name="wind">Wind</string>
+    <string name="humidity">Humidity</string>
+    <string name="pressure">Pressure</string>
+    <string name="co">carbon Monoxide</string>
+    <string name="o3">Ozone</string>
+    <string name="no2">Nitrogen dioxide</string>
+    <string name="so2">Sulfur dioxide</string>
+    <string name="pm10">Aerodynamic Diameter 10 μm</string>
+    <string name="pm2">Aerodynamic Diameter 2.5 μm</string>
+    <string name="weather_details_error">Unable to get the weather details</string>
+    <string name="miscellaneous">Miscellaneous</string>
+    <string name="weather">Weather</string>
+    <string name="enable_location_permission_step"><![CDATA[Enable location permission in App Info > Permissions > Location Permission. To view weather report.]]></string>
+    <string name="message">Message</string>
+    <string name="uanble_to_get_location_details">Unable to get location details</string>
+    <string name="enable_gps_text">Enable GPS to get current location\'s weather details</string>
+    <string name="gps_disabled_text">GPS is disabled</string>
+    <string name="ok">Ok</string>
+</resources>

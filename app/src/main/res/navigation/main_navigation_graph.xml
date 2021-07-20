@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_navigation_graph"
+    app:startDestination="@id/splashScreen">
+
+    <fragment
+        android:id="@+id/userList"
+        android:name="com.example.randomuserlisting.ui.fragments.userList.UserList"
+        android:label="user_list_fragment"
+        tools:layout="@layout/user_list_fragment">
+        <action
+            android:id="@+id/action_userList_to_userDetails"
+            app:destination="@id/userDetails"
+            app:enterAnim="@anim/nav_default_enter_anim"
+            app:exitAnim="@anim/nav_default_exit_anim"
+            app:popEnterAnim="@anim/nav_default_pop_enter_anim"
+            app:popExitAnim="@anim/nav_default_pop_exit_anim"
+            app:popUpTo="@id/userList" />
+    </fragment>
+    <fragment
+        android:id="@+id/userDetails"
+        android:name="com.example.randomuserlisting.ui.fragments.userDetails.UserDetails"
+        android:label="user_details_fragment"
+        tools:layout="@layout/user_details_fragment" />
+    <fragment
+        android:id="@+id/splashScreen"
+        android:name="com.example.randomuserlisting.ui.fragments.splashScreen.SplashScreen"
+        android:label="SplashScreen">
+        <action
+            android:id="@+id/action_splashScreen_to_userList"
+            app:destination="@id/userList"
+            app:enterAnim="@anim/nav_default_enter_anim"
+            app:exitAnim="@anim/nav_default_exit_anim"
+            app:launchSingleTop="true"
+            app:popEnterAnim="@anim/nav_default_pop_enter_anim"
+            app:popExitAnim="@anim/nav_default_pop_exit_anim"
+            app:popUpTo="@id/main_navigation_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+</navigation>
