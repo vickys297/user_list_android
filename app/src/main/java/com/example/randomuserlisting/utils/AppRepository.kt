@@ -48,7 +48,6 @@ class AppRepository(val appDatabase: AppDatabase) {
             airQuality = true
         )
 
-
         return try {
             if (response.isSuccessful) {
                 val data = response.body()

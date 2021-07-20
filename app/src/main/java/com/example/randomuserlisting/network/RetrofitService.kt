@@ -23,7 +23,7 @@ class RetrofitServices {
         val client = OkHttpClient.Builder()
             .connectTimeout(timeout = 30L, TimeUnit.SECONDS)
             .readTimeout(timeout = 30L, TimeUnit.SECONDS)
-            .addNetworkInterceptor(ConnectivityInterceptor())
+            .addInterceptor(ConnectivityInterceptor())
 
 
         if (BuildConfig.DEBUG) {

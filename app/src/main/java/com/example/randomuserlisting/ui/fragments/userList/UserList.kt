@@ -2,28 +2,29 @@ package com.example.randomuserlisting.ui.fragments.userList
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.Activity.RESULT_OK
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
-import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.core.location.LocationManagerCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -42,7 +43,6 @@ import com.example.randomuserlisting.model.UserModel
 import com.example.randomuserlisting.model.WeatherModel
 import com.example.randomuserlisting.model.WeatherResponse
 import com.example.randomuserlisting.network.NetworkHelperClass
-import com.example.randomuserlisting.network.NoConnectivityException
 import com.example.randomuserlisting.utils.AppConstants
 import com.example.randomuserlisting.utils.AppInterface
 import com.example.randomuserlisting.utils.AppRepository
@@ -57,13 +57,12 @@ import java.net.UnknownHostException
 
 
 @ExperimentalPagingApi
-private val TAG = UserList::class.java.canonicalName
-
-@ExperimentalPagingApi
 class UserList : Fragment(R.layout.user_list_fragment) {
 
+    private lateinit var weatherDetailsDataObserver: Observer<WeatherModel>
+    private lateinit var resolutionForResult: ActivityResultLauncher<IntentSenderRequest>
+    private lateinit var resolvableApiException: ResolvableApiException
     private var requestingLocationUpdates: Boolean = false
-    private val REQUEST_CHECK_SETTINGS: Int = 10001
 
     private lateinit var _binding: UserListFragmentBinding
     private val binding: UserListFragmentBinding get() = _binding
@@ -77,10 +76,8 @@ class UserList : Fragment(R.layout.user_list_fragment) {
 
     private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
 
-    private lateinit var locationManager: LocationManager
 
-
-    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    private var fusedLocationProviderClient: FusedLocationProviderClient? = null
     private lateinit var locationRequest: LocationRequest
 
 
@@ -88,9 +85,7 @@ class UserList : Fragment(R.layout.user_list_fragment) {
         override fun onLocationResult(locationResult: LocationResult) {
             super.onLocationResult(locationResult)
             val locationString = locationResult.lastLocation
-
-            Log.i(TAG, "onLocationResult: $locationString")
-//            displayWeatherDetails(locationString)
+            displayWeatherDetails(locationString)
         }
     }
 
@@ -108,7 +103,7 @@ class UserList : Fragment(R.layout.user_list_fragment) {
         super.onViewCreated(view, savedInstanceState)
         _binding = UserListFragmentBinding.bind(view)
         setupBinding()
-        locationHandler()
+        locationPermissionHandler()
 
         if (savedInstanceState != null) {
             requestingLocationUpdates =
@@ -121,17 +116,13 @@ class UserList : Fragment(R.layout.user_list_fragment) {
         fusedLocationProviderClient =
             LocationServices.getFusedLocationProviderClient(requireActivity())
         locationRequest = LocationRequest.create()
-        locationRequest.interval = 3000
+        locationRequest.interval = 30000
         locationRequest.fastestInterval = 3000
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
 
         if (isLocationPermissionGranted()) {
             checkLocationSettings()
-        } else {
-            getLocationPermission()
         }
-
-
 
         userListAdapter = UserListAdapter(userListInterface)
         userSearchListAdapter = UserListAdapter(userListInterface)
@@ -175,9 +166,22 @@ class UserList : Fragment(R.layout.user_list_fragment) {
             binding.root.hideSoftInput()
         }
 
+        resolutionForResult =
+            registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+                when (result.resultCode) {
+                    RESULT_OK -> {
+                        setupLocationUpdate()
+                    }
+                }
+            }
+
         binding.editTextSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-
+                if (binding.swipeToRefreshLayout.isRefreshing) {
+                    binding.swipeToRefreshLayout.isRefreshing = false
+                }
+                binding.buttonRetry.isVisible = false
+                binding.progressBar.isVisible = false
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -203,7 +207,13 @@ class UserList : Fragment(R.layout.user_list_fragment) {
             }
 
         })
+
+        binding.swipeToRefreshLayout.setOnRefreshListener {
+            userListAdapter.refresh()
+        }
+
         if (requestingLocationUpdates) setupLocationUpdate()
+
         setupUserRecyclerViewDataSet()
     }
 
@@ -214,36 +224,42 @@ class UserList : Fragment(R.layout.user_list_fragment) {
             .getSettingsClient(requireActivity())
         val task = client.checkLocationSettings(request)
 
+
         task.addOnSuccessListener {
             requestingLocationUpdates = true
             setupLocationUpdate()
         }
+
         task.addOnFailureListener {
             requestingLocationUpdates = false
             if (it is ResolvableApiException) {
 
+                resolvableApiException = it
+
                 try {
-                    // Show the dialog by calling startResolutionForResult(),
-                    // and check the result in onActivityResult().
-                    it.startResolutionForResult(
-                        requireActivity(),
-                        REQUEST_CHECK_SETTINGS
-                    )
+                    val intentSenderRequest =
+                        IntentSenderRequest.Builder(it.resolution).build()
+                    resolutionForResult.launch(intentSenderRequest)
                 } catch (sendEx: IntentSender.SendIntentException) {
 
                 }
+
             }
         }
     }
 
+
     @SuppressLint("MissingPermission")
     private fun setupLocationUpdate() {
         if (isLocationPermissionGranted()) {
-            fusedLocationProviderClient.requestLocationUpdates(
-                locationRequest,
-                locationCallback,
-                Looper.getMainLooper()
-            )
+            fusedLocationProviderClient?.let {
+                it.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback,
+                    Looper.getMainLooper()
+                )
+            }
+
         }
     }
 
@@ -259,7 +275,7 @@ class UserList : Fragment(R.layout.user_list_fragment) {
     }
 
 
-    private fun locationHandler() {
+    private fun locationPermissionHandler() {
         requestPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
                 if (isGranted) {
@@ -307,6 +323,11 @@ class UserList : Fragment(R.layout.user_list_fragment) {
     private fun setupUserRecyclerViewDataSet() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.getUserList().collectLatest {
+
+                if (binding.swipeToRefreshLayout.isRefreshing) {
+                    binding.swipeToRefreshLayout.isRefreshing = false
+                }
+
                 userListAdapter.submitData(it)
             }
         }
@@ -323,6 +344,33 @@ class UserList : Fragment(R.layout.user_list_fragment) {
             lifecycleOwner = this@UserList.viewLifecycleOwner
             executePendingBindings()
         }
+
+
+        weatherDetailsDataObserver = Observer {
+            it?.let {
+                binding.textViewWeatherLocation.text =
+                    String.format(
+                        "%s %s %s",
+                        it.current.temp_c,
+                        "\u00B0",
+                        it.location.name
+                    )
+                binding.textViewWeatherText.apply {
+                    isSelected = true
+                    text = it.current.condition.text
+                }
+                Glide
+                    .with(requireContext())
+                    .load("https:${it.current.condition.icon}")
+                    .into(binding.imageViewWeatherIcon)
+
+                stopLocationUpdates()
+            }
+
+        }
+
+        viewModel.weatherDetails.observe(viewLifecycleOwner, weatherDetailsDataObserver)
+
     }
 
     private fun View.hideSoftInput() {
@@ -333,8 +381,6 @@ class UserList : Fragment(R.layout.user_list_fragment) {
 
     private fun displayWeatherDetails(latLngLocation: Location) {
         lifecycleScope.launchWhenStarted {
-
-
             val location = String.format(
                 "%s,%s",
                 latLngLocation.latitude.toString(),
@@ -344,44 +390,26 @@ class UserList : Fragment(R.layout.user_list_fragment) {
                 when (val weatherDetails = viewModel.getWeatherDetails(location = location)) {
                     is WeatherResponse.Success -> showWeatherDetails(weatherDetails.success)
                     is WeatherResponse.Failure -> showExceptionMessage(weatherDetails.failure)
-                    is WeatherResponse.HttpErrorCode.Exception -> showHttpCodeErrorMessage(
+                    is WeatherResponse.HttpErrorCode.Exception -> showExceptionMessage(
                         weatherDetails.exception
                     )
                 }
+
             } catch (e: IOException) {
-                Log.i(TAG, "displayWeatherDetails: $e")
+                // for safe check
             } catch (e: UnknownHostException) {
-                Log.i(TAG, "displayWeatherDetails: $e")
+                // for safe check
             }
         }
     }
 
-    private fun showHttpCodeErrorMessage(exception: String) {
-        Toast.makeText(requireContext(), exception, Toast.LENGTH_LONG).show()
-    }
 
     private fun showExceptionMessage(exception: String) {
-        Toast.makeText(requireContext(), exception, Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), exception, Toast.LENGTH_SHORT).show()
     }
 
     private fun showWeatherDetails(weatherDetails: WeatherModel) {
-        binding.textViewWeatherLocation.text =
-            String.format(
-                "%s %s %s",
-                weatherDetails.current.temp_c,
-                "\u00B0",
-                weatherDetails.location.name
-            )
-        binding.textViewWeatherText.apply {
-            isSelected = true
-            text = weatherDetails.current.condition.text
-        }
-        Glide
-            .with(requireContext())
-            .load("https:${weatherDetails.current.condition.icon}")
-            .into(binding.imageViewWeatherIcon)
-
-        stopLocationUpdates()
+        viewModel.weatherDetails.postValue(weatherDetails)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -397,6 +425,8 @@ class UserList : Fragment(R.layout.user_list_fragment) {
 
     private fun stopLocationUpdates() {
         requestingLocationUpdates = false
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
+
+        fusedLocationProviderClient?.removeLocationUpdates(locationCallback)
+
     }
 }

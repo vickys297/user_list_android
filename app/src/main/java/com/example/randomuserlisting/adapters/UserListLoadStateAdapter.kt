@@ -1,64 +1,37 @@
 package com.example.randomuserlisting.adapters
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.core.view.isGone
-import androidx.core.view.isVisible
 import androidx.paging.LoadState
 import androidx.paging.LoadStateAdapter
-import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
+import com.example.randomuserlisting.adapters.viewHolder.UserListLoadStateViewHolder
 import com.example.randomuserlisting.databinding.RecyclerLoadStateBinding
-import com.example.randomuserlisting.utils.AppInterface
-import java.net.UnknownHostException
+
 
 class UserListLoadStateAdapter(
     private val retry: () -> Unit
-) : LoadStateAdapter<UserListLoadStateAdapter.UserListLoadStateViewHolder>() {
-
-
-    class UserListLoadStateViewHolder(val binding: RecyclerLoadStateBinding) :
-        RecyclerView.ViewHolder(binding.root) {
-        private val TAG = UserListLoadStateViewHolder::class.java.canonicalName
-        fun bind(loadState: LoadState): RecyclerLoadStateBinding {
-
-
-            binding.apply {
-                executePendingBindings()
-            }
-
-            when (loadState) {
-                is LoadState.Error -> {
-
-                    Toast.makeText(
-                        binding.root.context,
-                        loadState.error.message,
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    binding.buttonRetry.isVisible = true
-                }
-                else -> {
-
-                    binding.loading.isVisible = loadState is LoadState.Loading
-                    binding.loading.isGone = loadState is LoadState.NotLoading
-                    binding.buttonRetry.isVisible = loadState !is LoadState.Loading
-                }
-            }
-            Log.i(TAG, "bind: loadState $loadState")
-            return binding
-        }
-
-    }
+) : LoadStateAdapter<UserListLoadStateViewHolder>() {
 
     override fun onBindViewHolder(holder: UserListLoadStateViewHolder, loadState: LoadState) {
         holder.bind(loadState).apply {
+
+            if (loadState is LoadState.Error) {
+                val layoutParams = StaggeredGridLayoutManager.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                layoutParams.isFullSpan = true
+                holder.itemView.layoutParams = layoutParams
+            }
+
+
             holder.binding.buttonRetry.setOnClickListener {
                 retry.invoke()
             }
         }
     }
+
 
     override fun onCreateViewHolder(
         parent: ViewGroup,

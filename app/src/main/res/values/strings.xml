@@ -27,4 +27,6 @@
     <string name="enable_gps_text">Enable GPS to get current location\'s weather details</string>
     <string name="gps_disabled_text">GPS is disabled</string>
     <string name="ok">Ok</string>
+    <string name="featching_weather_updates">Fetching weather updates</string>
+    <string name="location_denied_note">Please enable location permission to get weather updates</string>
 </resources>

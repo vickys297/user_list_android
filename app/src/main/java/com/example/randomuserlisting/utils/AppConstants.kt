@@ -28,4 +28,10 @@ object AppConstants {
     object Common{
         const val LOCATION_UPDATE_KEY = "Location_Key"
     }
+
+    object Preferences{
+        const val PREFERENCE_KEY ="appPreferences"
+        const val PREVIOUS_LOCATION_LAT ="previousLocationLat"
+        const val PREVIOUS_LOCATION_LNG ="previousLocationLng"
+    }
 }

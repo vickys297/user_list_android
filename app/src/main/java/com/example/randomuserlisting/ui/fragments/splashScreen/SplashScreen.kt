@@ -19,8 +19,6 @@ import com.example.randomuserlisting.localDatabase.AppDatabase
 import com.example.randomuserlisting.utils.AppRepository
 import com.example.randomuserlisting.utils.AppViewModelFactory
 
-private val TAG = SplashScreen::class.java.canonicalName
-
 class SplashScreen : Fragment(R.layout.fragment_splash_screen) {
 
 
@@ -35,7 +33,7 @@ class SplashScreen : Fragment(R.layout.fragment_splash_screen) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        Log.i(TAG, "onViewCreated: ")
+
         _binding = FragmentSplashScreenBinding.bind(view)
         setupBinding()
 
@@ -107,7 +105,7 @@ class SplashScreen : Fragment(R.layout.fragment_splash_screen) {
 
 
     private fun showLocationPermissionDeniedMessage() {
-        Toast.makeText(requireContext(), "Location permission denied", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), getString(R.string.location_denied_note), Toast.LENGTH_SHORT).show()
     }
 
 }

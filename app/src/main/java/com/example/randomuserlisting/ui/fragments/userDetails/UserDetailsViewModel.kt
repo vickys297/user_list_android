@@ -15,7 +15,6 @@ class UserDetailsViewModel(private val appRepository: AppRepository) : ViewModel
 
 
     suspend fun getWeatherDetails(location: String): WeatherResponse {
-
         return appRepository.getWeatherReport(location)
     }
 

@@ -116,8 +116,6 @@ class UserDetails : Fragment(R.layout.user_details_fragment) {
             binding.progressBar.isVisible = false
 
             it?.let {
-
-                Log.i(TAG, "setupObserver: https:${it.current.condition.icon}")
                 Glide
                     .with(requireContext())
                     .load("https:${it.current.condition.icon}")

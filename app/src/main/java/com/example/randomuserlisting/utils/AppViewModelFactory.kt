@@ -18,7 +18,7 @@ class AppViewModelFactory(private val appRepository: AppRepository) : ViewModelP
             UserListViewModel::class.java -> {
                 UserListViewModel(appRepository) as T
             }
-            UserDetailsViewModel::class.java->{
+            UserDetailsViewModel::class.java -> {
                 UserDetailsViewModel(appRepository) as T
             }
             else -> {
